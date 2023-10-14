@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EnumCompanyRole {
+  ADMIN
+  SIGNER
+  EMPLOYEE
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  wallet         String           @unique
+  name           String?
+  Company        Company?         @relation(fields: [companyId], references: [id])
+  companyId      Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  hourlyRate     Int?
+  companyRole    EnumCompanyRole?
+  Timesheets     Timesheet[]
+  PaymentRequest PaymentRequest[]
+}
+
+model WalletAuthKey {
+  id        Int      @id @default(autoincrement())
+  wallet    String   @unique
+  authKey   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id            Int      @id @default(autoincrement())
+  name          String?
+  wallet        String   @unique
+  signThreshold Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  Users         User[]
+}
+
+model Timesheet {
+  id               Int                @id @default(autoincrement())
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  User             User               @relation(fields: [userId], references: [id])
+  userId           Int
+  hours            Int?
+  date             DateTime
+  approved         Boolean            @default(false)
+  notes            String?
+  InActivity       TimesheetActivity? @relation("InActivity", fields: [inActivityId], references: [id])
+  inActivityId     Int?
+  OutActivity      TimesheetActivity? @relation("OutActivity", fields: [outActivityId], references: [id])
+  outActivityId    Int?
+  PaymentRequest   PaymentRequest?    @relation(fields: [paymentRequestId], references: [id])
+  paymentRequestId Int?
+}
+
+model PaymentRequest {
+  id              Int         @id @default(autoincrement())
+  transactionHash String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  User            User        @relation(fields: [userId], references: [id])
+  userId          Int
+  amount          Int
+  approved        Boolean     @default(false)
+  Timesheet       Timesheet[]
+}
+
+model TimesheetActivity {
+  id            Int         @id @default(autoincrement())
+  hash          String      @unique
+  date          DateTime
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  InTimesheets  Timesheet[] @relation("InActivity")
+  OutTimesheets Timesheet[] @relation("OutActivity")
+}
